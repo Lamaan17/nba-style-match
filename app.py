@@ -36,7 +36,23 @@ trait_descriptions = {
 }
 
 # You will need to define these before similarity logic
-quiz_questions = {...}  # assume your existing questions here
+quiz_questions = {
+    "At home I am...": {
+        "the planner": ["Efficient", "Leader"],
+        "the entertainer": ["Creative Spark", "Unpredictable"],
+        "the chill one": ["Pass-First", "Shooter"]
+    },
+    "At work I am...": {
+        "data-driven": ["Efficient", "All-Rounder"],
+        "collaborative": ["Team-First", "Pass-First"],
+        "innovative": ["Creative Spark", "Versatile"]
+    },
+    "In free time I am...": {
+        "watching sports": ["Scorer", "Shooter"],
+        "playing games": ["Unpredictable", "Versatile"],
+        "volunteering": ["Hustler", "Team-First"]
+    }
+}  # assume your existing questions here
 player_traits = {...}  # assume your player trait dictionary
 player_stats = {...}   # assume your player stat dictionary
 
