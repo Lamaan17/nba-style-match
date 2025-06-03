@@ -94,28 +94,35 @@ if st.button("🧠 Show My NBA Match"):
     best_match = df_scores.iloc[0]["Player"]
     st.success(f"🎯 You match with **{best_match}**!")
 
-    # Trait radar chart
-    user_trait_vector = [1 if t in user_traits else 0 for t in all_traits]
-    match_trait_vector = [1 if t in player_traits[best_match] else 0 for t in all_traits]
+    # Show similarity scores ABOVE charts
+    st.markdown("### 🔍 Similarity Scores")
+    st.dataframe(df_scores.head(5))
+
+    # Trait radar chart: You vs average NBA player
+    user_trait_vector = np.array([1 if t in user_traits else 0 for t in all_traits])
+    avg_player_vector = player_matrix.mean(axis=0)
 
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(r=user_trait_vector, theta=all_traits, fill='toself', name='You'))
-    fig.add_trace(go.Scatterpolar(r=match_trait_vector, theta=all_traits, fill='toself', name=best_match))
-    fig.update_layout(title="Trait Radar Comparison", polar=dict(radialaxis=dict(visible=True)), showlegend=True)
+    fig.add_trace(go.Scatterpolar(r=avg_player_vector, theta=all_traits, fill='none', name='NBA Avg', line=dict(dash='dash')))
+    fig.update_layout(title="Trait Radar: You vs. NBA Player Average", polar=dict(radialaxis=dict(visible=True)), showlegend=True)
     st.plotly_chart(fig)
 
-    # Stats comparison chart
+    # Stats comparison chart with better visuals
     stat_df = pd.DataFrame(player_stats).T.loc[df_scores["Player"].head(5)]
     st.markdown("### 📊 Player Stat Comparison")
     for stat in stat_df.columns:
         fig = go.Figure()
-        fig.add_trace(go.Bar(x=stat_df.index, y=stat_df[stat], name=stat))
-        fig.update_layout(title=f"{stat} Comparison", xaxis_title="Player", yaxis_title=stat)
+        fig.add_trace(go.Bar(x=stat_df.index, y=stat_df[stat], name=stat, marker_color='indigo'))
+        fig.update_layout(
+            title=f"{stat} Comparison",
+            xaxis_title="Player",
+            yaxis_title=stat,
+            template="plotly_dark",
+            bargap=0.3,
+            height=400
+        )
         st.plotly_chart(fig)
-
-    # Show similarity scores
-    st.markdown("### 🔍 Similarity Scores")
-    st.dataframe(df_scores.head(5))
 
     # Explanation
     with st.expander("How this works"):
@@ -123,5 +130,5 @@ if st.button("🧠 Show My NBA Match"):
         We convert your selected traits into a binary feature vector.
         Each NBA player has their own trait vector.
         We compute cosine similarity between your vector and each player's vector — the player with the highest similarity score is your best match.
-        This mimics feature-based recommendation systems.
+        Then, we compare your trait profile to the average NBA player to see how you stand out.
         """)
