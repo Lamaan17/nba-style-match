@@ -5,8 +5,10 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+st.title("🏀 NBA Player Style Match")
 
 # Define grouped and sorted trait list
 all_traits = [
@@ -35,7 +37,6 @@ trait_descriptions = {
     "Efficient": "Makes the most out of every possession"
 }
 
-# You will need to define these before similarity logic
 quiz_questions = {
     "At home I am...": {
         "the planner": ["Efficient", "Leader"],
@@ -52,118 +53,120 @@ quiz_questions = {
         "playing games": ["Unpredictable", "Versatile"],
         "volunteering": ["Hustler", "Team-First"]
     }
-}  # assume your existing questions here
+}
+
 player_traits = {
-    "Stephen Curry": ["Shooter", "Playmaker", "Leader", "Efficient"],
-    "LeBron James": ["All-Rounder", "Leader", "Versatile", "Playmaker"],
-    "Giannis Antetokounmpo": ["Rim Protector", "Scorer", "Hustler", "Versatile"],
-    "Nikola Jokic": ["Pass-First", "Playmaker", "Efficient", "All-Rounder"],
-    "Jimmy Butler": ["Team-First", "Hustler", "Defender", "Leader"]
-}  # assume your player trait dictionary
+    'Tyrese Haliburton': ['Shooter', 'Playmaker', 'Pass-First', 'Defender'],
+    'Jayson Tatum': ['Scorer', 'Shooter', 'Playmaker', 'Hustler', 'All-Rounder', 'Team-First', 'Versatile'],
+    'Stephen Curry': ['Shooter', 'Playmaker'],
+    'Evan Mobley': ['Rim Protector', 'Hustler'],
+    'Giannis Antetokounmpo': ['Scorer', 'Playmaker', 'Rim Protector', 'Hustler', 'All-Rounder', 'Team-First'],
+    'Nikola Jokic': ['Scorer', 'Playmaker', 'Pass-First', 'Hustler', 'All-Rounder', 'Team-First'],
+    'Jimmy Butler': ['Scorer', 'Playmaker', 'Defender', 'Hustler', 'All-Rounder', 'Team-First'],
+    'LeBron James': ['Scorer', 'Playmaker', 'Hustler', 'All-Rounder', 'Team-First'],
+    'Shai Gilgeous-Alexander': ['Scorer', 'Playmaker', 'Defender', 'Team-First'],
+    'Anthony Edwards': ['Scorer', 'Shooter', 'Defender', 'Team-First']
+}
+
 player_stats = {
-    "Stephen Curry": {"PTS": 29.4, "REB": 6.1, "AST": 6.3},
-    "LeBron James": {"PTS": 27.1, "REB": 7.5, "AST": 7.2},
-    "Giannis Antetokounmpo": {"PTS": 30.1, "REB": 11.6, "AST": 5.2},
-    "Nikola Jokic": {"PTS": 26.4, "REB": 12.4, "AST": 9.0},
-    "Jimmy Butler": {"PTS": 22.9, "REB": 5.9, "AST": 5.3}
-}   # assume your player stat dictionary
+    'Tyrese Haliburton': {'PTS': 18.6, 'REB': 3.5, 'AST': 9.2},
+    'Jayson Tatum': {'PTS': 26.8, 'REB': 8.7, 'AST': 6.0},
+    'Stephen Curry': {'PTS': 24.5, 'REB': 4.4, 'AST': 6.0},
+    'Evan Mobley': {'PTS': 18.5, 'REB': 9.3, 'AST': 3.2},
+    'Giannis Antetokounmpo': {'PTS': 30.4, 'REB': 11.9, 'AST': 6.5},
+    'Nikola Jokic': {'PTS': 25.9, 'REB': 12.2, 'AST': 9.4},
+    'Jimmy Butler': {'PTS': 22.4, 'REB': 5.9, 'AST': 5.0},
+    'LeBron James': {'PTS': 27.5, 'REB': 8.0, 'AST': 8.3},
+    'Shai Gilgeous-Alexander': {'PTS': 31.4, 'REB': 5.5, 'AST': 6.2},
+    'Anthony Edwards': {'PTS': 25.9, 'REB': 5.4, 'AST': 4.5}
+}
 
+# User quiz and trait vector
+st.markdown("### 👤 Tell us about yourself")
 user_traits = []
-for q, options in quiz_questions.items():
-    answer = st.radio(q, list(options.keys()), key=q)
-    user_traits.extend(options[answer])
+for question, options in quiz_questions.items():
+    choice = st.radio(question, list(options.keys()), key=question)
+    user_traits.extend(options[choice])
 
-# Build user and player vectors
 user_vector = np.array([1 if trait in user_traits else 0 for trait in all_traits]).reshape(1, -1)
-data = []
-for player, traits in player_traits.items():
-    vector = [1 if trait in traits else 0 for trait in all_traits]
-    data.append(vector)
-player_matrix = np.array(data)
+player_matrix = np.array([
+    [1 if trait in player_traits[player] else 0 for trait in all_traits]
+    for player in player_traits
+])
 
-# Cosine similarity scores
+# Cosine similarity
 similarities = cosine_similarity(user_vector, player_matrix)[0]
+matched_player = list(player_traits.keys())[np.argmax(similarities)]
 
-# Match players to scores
-df_scores = pd.DataFrame({
-    "Player": list(player_traits.keys()),
-    "Score": similarities
-}).sort_values(by="Score", ascending=False)
+# Display result
+st.markdown(f"### 🏆 You match most with **{matched_player}**")
 
-if st.button("🧠 Show My NBA Match"):
-    best_match = df_scores.iloc[0]["Player"]
-    second_match = df_scores.iloc[1]["Score"]
-    match_gap = df_scores.iloc[0]["Score"] - second_match
-    st.success(f"🎯 You match with **{best_match}**!")
-    st.info(f"Match confidence: {match_gap:.2f} (difference from next closest)")
+# Trait radar chart
+categories = all_traits
+user_values = user_vector.flatten()
+match_vector = np.array([1 if trait in player_traits[matched_player] else 0 for trait in all_traits])
 
-    st.markdown("### 🔍 Similarity Scores")
-    st.dataframe(df_scores.head(5))
+fig_radar = go.Figure()
+fig_radar.add_trace(go.Scatterpolar(r=user_values, theta=categories, fill='toself', name='You'))
+fig_radar.add_trace(go.Scatterpolar(r=match_vector, theta=categories, fill='toself', name=matched_player))
+fig_radar.update_layout(title="Trait Radar Chart", polar=dict(radialaxis=dict(visible=True)), showlegend=True)
+st.plotly_chart(fig_radar)
 
-    # Trait radar chart: You vs average NBA player with hovertext
-    user_trait_vector = np.array([1 if t in user_traits else 0 for t in all_traits])
-    avg_player_vector = player_matrix.mean(axis=0)
-    hover_text = [trait_descriptions.get(t, t) for t in all_traits]
+# Stat comparison
+st.markdown("### 📊 Stat Comparison")
+user_stats = {'PTS': random.uniform(15, 30), 'REB': random.uniform(4, 10), 'AST': random.uniform(3, 9)}
+bar_fig = go.Figure()
+for stat in user_stats:
+    bar_fig.add_trace(go.Bar(name='You', x=[stat], y=[user_stats[stat]]))
+    bar_fig.add_trace(go.Bar(name=matched_player, x=[stat], y=[player_stats[matched_player][stat]]))
+bar_fig.update_layout(barmode='group', title="Your Stats vs Matched Player")
+st.plotly_chart(bar_fig)
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(
-        r=user_trait_vector,
-        theta=all_traits,
-        fill='toself',
-        name='You',
-        hovertext=hover_text,
-        hoverinfo='text+name'
+# KMeans Clustering and PCA
+kmeans = KMeans(n_clusters=3, random_state=42)
+kmeans.fit(player_matrix)
+
+st.markdown("### 🧭 NBA Style Clusters")
+pca = PCA(n_components=2)
+reduced_data = pca.fit_transform(np.vstack([user_vector, player_matrix]))
+user_coords = reduced_data[0]
+player_coords = reduced_data[1:]
+
+cluster_labels = kmeans.labels_
+cluster_colors = ['#636EFA', '#EF553B', '#00CC96']
+
+fig = go.Figure()
+for i, name in enumerate(player_traits.keys()):
+    fig.add_trace(go.Scatter(
+        x=[player_coords[i][0]], y=[player_coords[i][1]],
+        mode='markers', name=name,
+        marker=dict(size=10, color=cluster_colors[cluster_labels[i]], opacity=0.6),
+        hovertext=name
     ))
-    fig.add_trace(go.Scatterpolar(
-        r=avg_player_vector,
-        theta=all_traits,
-        fill='none',
-        name='NBA Avg',
-        line=dict(dash='dash'),
-        hovertext=hover_text,
-        hoverinfo='text+name'
-    ))
-    fig.update_layout(
-        title="Trait Radar: You vs. NBA Player Average",
-        polar=dict(radialaxis=dict(visible=True)),
-        showlegend=True
-    )
-    st.plotly_chart(fig)
 
-    # Normalize stats for fair comparison
-    stat_df = pd.DataFrame(player_stats).T.loc[df_scores["Player"].head(5)]
-    stat_df_norm = pd.DataFrame(StandardScaler().fit_transform(stat_df), columns=stat_df.columns, index=stat_df.index)
+fig.add_trace(go.Scatter(
+    x=[user_coords[0]], y=[user_coords[1]],
+    mode='markers+text', name='You',
+    marker=dict(size=14, color='black', symbol='x'),
+    text=['You'], textposition='top center'
+))
 
-    st.markdown("### 📊 Normalized Stat Comparison")
-    for stat in stat_df_norm.columns:
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=stat_df_norm.index, y=stat_df_norm[stat], name=stat, marker_color='indigo'))
-        fig.update_layout(
-            title=f"{stat} (Z-Score Normalized)",
-            xaxis_title="Player",
-            yaxis_title="Z-Score",
-            template="plotly_dark",
-            bargap=0.3,
-            height=400
-        )
-        st.plotly_chart(fig)
+fig.update_layout(
+    title="Your NBA Style in Cluster Space",
+    xaxis_title="PCA Component 1",
+    yaxis_title="PCA Component 2",
+    height=500,
+    showlegend=False
+)
+st.plotly_chart(fig)
 
-    # Optional: Cluster insight using k-means
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    kmeans.fit(player_matrix)
-    labels = kmeans.predict(user_vector)
-    st.markdown(f"### 🧬 You belong to Player Cluster #{labels[0]+1}")
-
-    # Explanation
-    with st.expander("How this works"):
-        st.write("""
-        We convert your selected traits into a binary feature vector.
-        Each NBA player has their own trait vector.
-        We compute cosine similarity between your vector and each player's vector — the player with the highest similarity score is your best match.
-        Then, we compare your trait profile to the average NBA player to see how you stand out.
-        We also normalize stats for comparison and cluster players by style.
-        """)
-
-    with st.expander("🧩 Trait Descriptions"):
-        for trait in user_traits:
-            st.markdown(f"**{trait}**: {trait_descriptions.get(trait, 'N/A')}")
+# How it works section
+st.markdown("### 🧠 How this works")
+st.markdown("""
+This app uses:
+- Your quiz answers to build a **trait vector**
+- **Cosine similarity** to find the most similar NBA player
+- **Radar chart** to compare traits
+- **Bar chart** for stat comparison
+- **KMeans clustering + PCA** to visualize play styles in 2D
+""")
