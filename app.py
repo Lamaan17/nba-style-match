@@ -53,8 +53,20 @@ quiz_questions = {
         "volunteering": ["Hustler", "Team-First"]
     }
 }  # assume your existing questions here
-player_traits = {...}  # assume your player trait dictionary
-player_stats = {...}   # assume your player stat dictionary
+player_traits = {
+    "Stephen Curry": ["Shooter", "Playmaker", "Leader", "Efficient"],
+    "LeBron James": ["All-Rounder", "Leader", "Versatile", "Playmaker"],
+    "Giannis Antetokounmpo": ["Rim Protector", "Scorer", "Hustler", "Versatile"],
+    "Nikola Jokic": ["Pass-First", "Playmaker", "Efficient", "All-Rounder"],
+    "Jimmy Butler": ["Team-First", "Hustler", "Defender", "Leader"]
+}  # assume your player trait dictionary
+player_stats = {
+    "Stephen Curry": {"PTS": 29.4, "REB": 6.1, "AST": 6.3},
+    "LeBron James": {"PTS": 27.1, "REB": 7.5, "AST": 7.2},
+    "Giannis Antetokounmpo": {"PTS": 30.1, "REB": 11.6, "AST": 5.2},
+    "Nikola Jokic": {"PTS": 26.4, "REB": 12.4, "AST": 9.0},
+    "Jimmy Butler": {"PTS": 22.9, "REB": 5.9, "AST": 5.3}
+}   # assume your player stat dictionary
 
 user_traits = []
 for q, options in quiz_questions.items():
