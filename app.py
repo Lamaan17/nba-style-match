@@ -35,6 +35,24 @@ trait_descriptions = {
     "Efficient": "Makes the most out of every possession"
 }
 
+# You will need to define these before similarity logic
+quiz_questions = {...}  # assume your existing questions here
+player_traits = {...}  # assume your player trait dictionary
+player_stats = {...}   # assume your player stat dictionary
+
+user_traits = []
+for q, options in quiz_questions.items():
+    answer = st.radio(q, list(options.keys()), key=q)
+    user_traits.extend(options[answer])
+
+# Build user and player vectors
+user_vector = np.array([1 if trait in user_traits else 0 for trait in all_traits]).reshape(1, -1)
+data = []
+for player, traits in player_traits.items():
+    vector = [1 if trait in traits else 0 for trait in all_traits]
+    data.append(vector)
+player_matrix = np.array(data)
+
 # Cosine similarity scores
 similarities = cosine_similarity(user_vector, player_matrix)[0]
 
