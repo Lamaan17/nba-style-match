@@ -19,24 +19,6 @@ all_traits = [
     "Versatile", "All-Rounder", "Unpredictable"
 ]
 
-trait_descriptions = {
-    "Shooter": "Strong from long-range or mid-range scoring",
-    "Playmaker": "Creates opportunities for teammates",
-    "Defender": "Good at preventing opponents from scoring",
-    "Pass-First": "Prioritizes assists over own scoring",
-    "Team-First": "Always puts team goals above personal stats",
-    "Leader": "Vocal or emotional leader on the court",
-    "Versatile": "Plays multiple positions or roles",
-    "All-Rounder": "Balances multiple skills well",
-    "Scorer": "Tends to score a lot",
-    "Creative Spark": "Plays with flair, makes unexpected plays",
-    "Rim Protector": "Excellent at blocking or altering shots",
-    "Hustler": "High energy, goes after every play",
-    "Switchable": "Can guard multiple positions",
-    "Unpredictable": "Hard to read, spontaneous decisions",
-    "Efficient": "Makes the most out of every possession"
-}
-
 quiz_questions = {
     "At home I am...": {
         "the planner": ["Efficient", "Leader"],
@@ -81,16 +63,18 @@ player_stats = {
     'Anthony Edwards': {'PTS': 25.9, 'REB': 5.4, 'AST': 4.5}
 }
 
-# --- Quiz Interaction ---
 st.markdown("### 👤 Tell us about yourself")
 user_traits = []
-quiz_submitted = st.button("🔍 See my NBA match")
+quiz_answers = {}
 
-if quiz_submitted:
-    for question, options in quiz_questions.items():
-        choice = st.radio(question, list(options.keys()), key=question)
-        user_traits.extend(options[choice])
+for question, options in quiz_questions.items():
+    choice = st.radio(question, list(options.keys()), key=question)
+    quiz_answers[question] = choice
+    user_traits.extend(options[choice])
 
+ready = all(q in quiz_answers for q in quiz_questions)
+
+if ready and st.button("🔍 See my NBA match"):
     user_vector = np.array([1 if trait in user_traits else 0 for trait in all_traits]).reshape(1, -1)
     player_matrix = np.array([
         [1 if trait in player_traits[player] else 0 for trait in all_traits]
@@ -100,31 +84,33 @@ if quiz_submitted:
     similarities = cosine_similarity(user_vector, player_matrix)[0]
     matched_player = list(player_traits.keys())[np.argmax(similarities)]
 
+    # --- Similarity Table ---
+    top_indices = similarities.argsort()[::-1][:3]
+    st.markdown("### 🔗 Top 3 Similar Players")
+    sim_df = pd.DataFrame({
+        'Player': [list(player_traits.keys())[i] for i in top_indices],
+        'Similarity Score': [round(similarities[i], 2) for i in top_indices]
+    })
+    st.dataframe(sim_df)
+
     st.markdown(f"### 🏆 You match most with **{matched_player}**")
 
     # --- Trait Radar Chart ---
     categories = all_traits
-    user_values = user_vector.flatten()
     match_vector = np.array([1 if trait in player_traits[matched_player] else 0 for trait in all_traits])
-
     fig_radar = go.Figure()
-    fig_radar.add_trace(go.Scatterpolar(r=user_values, theta=categories, fill='toself', name='You'))
     fig_radar.add_trace(go.Scatterpolar(r=match_vector, theta=categories, fill='toself', name=matched_player))
     fig_radar.update_layout(title="Trait Radar Chart", polar=dict(radialaxis=dict(visible=True)), showlegend=True)
     st.plotly_chart(fig_radar)
 
     # --- Stat Comparison Bar Graph ---
     st.markdown("### 📊 Stat Comparison")
-    user_stats = {'PTS': random.uniform(15, 30), 'REB': random.uniform(4, 10), 'AST': random.uniform(3, 9)}
     league_avg = {k: np.mean([player_stats[p][k] for p in player_stats]) for k in ['PTS', 'REB', 'AST']}
-
     bar_fig = go.Figure()
-    for stat in user_stats:
-        bar_fig.add_trace(go.Bar(name='You', x=[stat], y=[user_stats[stat]]))
+    for stat in ['PTS', 'REB', 'AST']:
         bar_fig.add_trace(go.Bar(name=matched_player, x=[stat], y=[player_stats[matched_player][stat]]))
         bar_fig.add_trace(go.Bar(name='NBA Avg', x=[stat], y=[league_avg[stat]]))
-
-    bar_fig.update_layout(barmode='group', title="Your Stats vs Player & NBA Average")
+    bar_fig.update_layout(barmode='group', title="Matched Player vs NBA Average")
     st.plotly_chart(bar_fig)
 
     # --- Clustering with PCA ---
@@ -143,9 +129,8 @@ if quiz_submitted:
     for i, name in enumerate(player_traits.keys()):
         fig.add_trace(go.Scatter(
             x=[player_coords[i][0]], y=[player_coords[i][1]],
-            mode='markers', name=name,
-            marker=dict(size=10, color=cluster_colors[cluster_labels[i]], opacity=0.6),
-            hovertext=name
+            mode='markers+text', name=name,
+            text=name, marker=dict(size=10, color=cluster_colors[cluster_labels[i]], opacity=0.6)
         ))
 
     fig.add_trace(go.Scatter(
@@ -157,12 +142,13 @@ if quiz_submitted:
 
     fig.update_layout(
         title="Your NBA Style in Cluster Space",
-        xaxis_title="PCA Style Axis 1",
-        yaxis_title="PCA Style Axis 2",
-        height=500,
-        showlegend=False
+        xaxis_title="PCA Axis 1: Style Dimension",
+        yaxis_title="PCA Axis 2: Role Dimension",
+        height=500, showlegend=False
     )
     st.plotly_chart(fig)
+
+    st.caption("🔵 = Scorer Cluster · 🔴 = Playmaker Cluster · 🟢 = Hybrid Cluster")
 
     # --- How it Works ---
     with st.expander("🔎 How this works"):
